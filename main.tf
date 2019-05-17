@@ -14,22 +14,9 @@ resource "azurerm_storage_account" "script_storage" {
   account_replication_type = "LRS"
 }
 
-resource "azurerm_storage_container" "script_container" {
-  name                  = "scripts"
-  resource_group_name   = "${data.azurerm_resource_group.rg.name}"
-  storage_account_name  = "${azurerm_storage_account.script_storage.name}"
-  container_access_type = "blob"
-}
 
-resource "azurerm_storage_blob" "win_script_blob" {
-  name = "installLabVM.ps1"
 
-  resource_group_name    = "${data.azurerm_resource_group.rg.name}"
-  storage_account_name   = "${azurerm_storage_account.script_storage.name}"
-  storage_container_name = "${azurerm_storage_container.script_container.name}"
-  type                   = "block"
-  source                 = "${path.module}/installLabVM.ps1"
-}
+
 
 resource "azurerm_virtual_network" "vnet" {
   name                = "vnet-${local.unique}"
@@ -51,13 +38,13 @@ resource "azurerm_network_security_group" "nsg" {
   resource_group_name = "${data.azurerm_resource_group.rg.name}"
 
   security_rule {
-    name                       = "RDP"
+    name                       = "SSH"
     priority                   = 1001
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "3389"
+    destination_port_range     = "22"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
@@ -98,9 +85,9 @@ resource "azurerm_virtual_machine" "win_vm" {
   delete_data_disks_on_termination = true
 
   storage_image_reference {
-    publisher = "MicrosoftVisualStudio"
-    offer     = "VisualStudio"
-    sku       = "VS-2017-Comm-Latest-WS2016"
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "18.04-LTS"
     version   = "latest"
   }
 
@@ -117,30 +104,18 @@ resource "azurerm_virtual_machine" "win_vm" {
     admin_password = "${var.password}"
   }
 
-  os_profile_windows_config {
-    provision_vm_agent        = true
-    enable_automatic_upgrades = false
+  os_profile_linux_config {
+    disable_password_authentication = false
+  }
+  
+  boot_diagnostics {
+        enabled     = "false"
   }
 }
-
-resource "azurerm_virtual_machine_extension" "win_ext" {
-  name                = "vm-ext-${local.unique}"
-  location            = "${data.azurerm_resource_group.rg.location}"
-  resource_group_name = "${data.azurerm_resource_group.rg.name}"
-
-  virtual_machine_name = "${azurerm_virtual_machine.win_vm.name}"
-
-  publisher            = "Microsoft.Compute"
-  type                 = "CustomScriptExtension"
-  type_handler_version = "1.9"
-
-  settings = <<SETTINGS
-    {
-        "fileUris": ["${azurerm_storage_account.script_storage.primary_blob_endpoint}${azurerm_storage_container.script_container.name}/${azurerm_storage_blob.win_script_blob.name}"],
-        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ./installLabVM.ps1"
-    }
-SETTINGS
-
-  depends_on = ["azurerm_storage_blob.win_script_blob"]
+  resource "azurerm_container_registry" "acr" {
+  name                     = "acr${local.unique}"
+  resource_group_name      = "${data.azurerm_resource_group.rg.name}"
+  location                 = "${data.azurerm_resource_group.rg.location}"
+  sku                      = "Standard"
+  admin_enabled            = true
 }
-

@@ -1,8 +1,8 @@
 # Usage
 
 ```sh
-git clone https://github.com/olohmann/terraform-lab-vm.git
-cd terraform-lab-vm
+git clone https://github.com/krohm/cloud-labs.git
+cd cloud-labs
 export USER_NAME=<USER>
 export PASSWORD=<PASSWORD>
 export RESOURCE_GROUP_NAME=<RG_NAME>
