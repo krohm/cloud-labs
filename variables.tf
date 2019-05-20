@@ -15,5 +15,5 @@ variable "password" {
 variable "vm_size" {
     type = "string"
     description = "The size of the Lab VM."
-    default = "Standard_D4_v3"
+    default = "Standard_B2s"
 }
