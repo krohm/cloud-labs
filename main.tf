@@ -108,9 +108,7 @@ resource "azurerm_virtual_machine" "win_vm" {
     disable_password_authentication = false
   }
   
-  boot_diagnostics {
-        enabled     = "false"
-  }
+  
 }
   resource "azurerm_container_registry" "acr" {
   name                     = "acr${local.unique}"
